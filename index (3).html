@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karadenta - Jumlah Pasien 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #2d3748; padding: 24px; min-height: 100vh; }
+.container { max-width: 1400px; margin: 0 auto; }
+.header { background: linear-gradient(135deg, #1F4E78 0%, #2E75B6 100%); color: white; padding: 32px; border-radius: 16px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(31,78,120,0.2); }
+.header h1 { font-size: 28px; margin-bottom: 8px; }
+.header p { opacity: 0.9; font-size: 14px; }
+.controls { background: white; padding: 20px 24px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.filter-group { margin-bottom: 16px; }
+.filter-group:last-child { margin-bottom: 0; }
+.filter-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+.filter-label { font-weight: 700; font-size: 13px; color: #2d3748; text-transform: uppercase; letter-spacing: 0.5px; }
+.filter-actions { display: flex; gap: 8px; }
+.btn { padding: 4px 10px; font-size: 11px; border: 1px solid #2E75B6; background: white; color: #2E75B6; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+.btn:hover { background: #2E75B6; color: white; }
+.chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; padding: 8px 14px; background: #f1f5f9; border: 2px solid transparent; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; user-select: none; }
+.chip:hover { background: #e2e8f0; }
+.chip.active { background: #2E75B6; color: white; border-color: #1F4E78; }
+.chip input { display: none; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.kpi { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid; transition: transform 0.2s; }
+.kpi:hover { transform: translateY(-2px); }
+.kpi.total { border-color: #2E75B6; }
+.kpi.lama { border-color: #548235; }
+.kpi.baru { border-color: #C55A11; }
+.kpi.pct { border-color: #7030A0; }
+.kpi-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; font-weight: 600; margin-bottom: 8px; }
+.kpi-value { font-size: 32px; font-weight: 700; color: #1a202c; }
+.kpi-sub { font-size: 12px; color: #718096; margin-top: 4px; }
+.charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; margin-bottom: 24px; }
+.chart-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.chart-card h3 { font-size: 16px; margin-bottom: 16px; color: #2d3748; }
+.chart-wrapper { position: relative; height: 320px; }
+.table-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 24px; overflow-x: auto; }
+.table-card h3 { font-size: 16px; margin-bottom: 16px; color: #2d3748; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { background: #2E75B6; color: white; padding: 12px; text-align: left; font-weight: 600; }
+th:first-child { border-top-left-radius: 8px; }
+th:last-child { border-top-right-radius: 8px; }
+td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+tr:hover td { background: #f7fafc; }
+tr.total-row td { background: #DDEBF7; font-weight: 700; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.footer { text-align: center; padding: 16px; color: #718096; font-size: 12px; }
+.empty-state { text-align: center; padding: 40px; color: #a0aec0; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>Dashboard Jumlah Pasien Karadenta</h1>
+<p>Analisis per Cabang vs Bulan • Januari – Agustus 2026</p>
+</div>
+
+<div class="controls">
+<div class="filter-group">
+<div class="filter-header">
+<span class="filter-label">Cabang (pilih satu atau lebih)</span>
+<div class="filter-actions">
+<button class="btn" onclick="selectAll('branch', true)">Pilih Semua</button>
+<button class="btn" onclick="selectAll('branch', false)">Kosongkan</button>
+</div>
+</div>
+<div class="chip-row" id="branchChips"></div>
+</div>
+<div class="filter-group">
+<div class="filter-header">
+<span class="filter-label">Bulan (pilih satu atau lebih)</span>
+<div class="filter-actions">
+<button class="btn" onclick="selectAll('month', true)">Pilih Semua</button>
+<button class="btn" onclick="selectAll('month', false)">Kosongkan</button>
+</div>
+</div>
+<div class="chip-row" id="monthChips"></div>
+</div>
+</div>
+
+<div class="kpi-grid">
+<div class="kpi total"><div class="kpi-label">Total Pasien</div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-sub" id="kpiTotalSub"></div></div>
+<div class="kpi lama"><div class="kpi-label">Pasien Lama</div><div class="kpi-value" id="kpiLama">0</div><div class="kpi-sub" id="kpiLamaSub"></div></div>
+<div class="kpi baru"><div class="kpi-label">Pasien Baru</div><div class="kpi-value" id="kpiBaru">0</div><div class="kpi-sub" id="kpiBaruSub"></div></div>
+<div class="kpi pct"><div class="kpi-label">% Pasien Baru</div><div class="kpi-value" id="kpiPct">0%</div><div class="kpi-sub">Rasio akuisisi</div></div>
+</div>
+
+<div class="charts-grid">
+<div class="chart-card"><h3>Total Pasien per Bulan</h3><div class="chart-wrapper"><canvas id="chartMonthly"></canvas></div></div>
+<div class="chart-card"><h3>Total Pasien per Cabang</h3><div class="chart-wrapper"><canvas id="chartBranch"></canvas></div></div>
+<div class="chart-card"><h3>Tren Pasien Lama vs Pasien Baru</h3><div class="chart-wrapper"><canvas id="chartTrend"></canvas></div></div>
+<div class="chart-card"><h3>Share per Cabang</h3><div class="chart-wrapper"><canvas id="chartShare"></canvas></div></div>
+</div>
+
+<div class="table-card">
+<h3>Tabel Detail: Cabang vs Bulan</h3>
+<table id="detailTable"><thead></thead><tbody></tbody></table>
+</div>
+
+<div class="footer">Sumber data : Data Pasien 2026.xlsx - Last Update : 2 September 2026</div>
+</div>
+
+<script>
+const DATA = [{"branch":"SMD","lama":[154,112,173,120,129,138,125,119],"baru":[81,57,97,75,54,70,54,30]},{"branch":"PML","lama":[118,121,134,106,133,125,113,113],"baru":[70,41,55,48,43,36,30,41]},{"branch":"SBY","lama":[79,59,100,59,69,47,56,56],"baru":[29,19,38,37,25,25,21,22]},{"branch":"MLG","lama":[81,61,112,77,71,68,69,78],"baru":[53,37,54,36,24,31,28,18]},{"branch":"KTM","lama":[80,75,107,71,83,70,72,64],"baru":[42,30,52,36,30,40,13,47]},{"branch":"KPO","lama":[75,57,103,57,58,46,57,68],"baru":[39,33,38,29,21,17,13,13]}];
+const MONTHS = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus"];
+const BRANCHES = ["SMD","PML","SBY","MLG","KTM","KPO"];
+const COLORS = ['#2E75B6','#548235','#C55A11','#7030A0','#1F4E78','#D62728','#17A2B8','#E8A33D'];
+
+const selectedBranches = new Set(BRANCHES);
+const selectedMonths = new Set(MONTHS);
+
+function buildChips() {
+const bc = document.getElementById('branchChips');
+const mc = document.getElementById('monthChips');
+bc.innerHTML = '';
+mc.innerHTML = '';
+BRANCHES.forEach(b => {
+const lbl = document.createElement('label');
+lbl.className = 'chip' + (selectedBranches.has(b) ? ' active' : '');
+lbl.innerHTML = '<input type="checkbox" data-branch="'+b+'" '+(selectedBranches.has(b)?'checked':'')+'> '+b;
+lbl.querySelector('input').addEventListener('change', e => {
+if (e.target.checked) selectedBranches.add(b); else selectedBranches.delete(b);
+lbl.classList.toggle('active', e.target.checked);
+render();
+});
+bc.appendChild(lbl);
+});
+MONTHS.forEach(m => {
+const lbl = document.createElement('label');
+lbl.className = 'chip' + (selectedMonths.has(m) ? ' active' : '');
+lbl.innerHTML = '<input type="checkbox" data-month="'+m+'" '+(selectedMonths.has(m)?'checked':'')+'> '+m;
+lbl.querySelector('input').addEventListener('change', e => {
+if (e.target.checked) selectedMonths.add(m); else selectedMonths.delete(m);
+lbl.classList.toggle('active', e.target.checked);
+render();
+});
+mc.appendChild(lbl);
+});
+}
+
+function selectAll(type, on) {
+if (type === 'branch') {
+selectedBranches.clear();
+if (on) BRANCHES.forEach(b => selectedBranches.add(b));
+} else {
+selectedMonths.clear();
+if (on) MONTHS.forEach(m => selectedMonths.add(m));
+}
+buildChips();
+render();
+}
+
+function getFiltered() {
+const monthIdxs = MONTHS.map((m,i)=> selectedMonths.has(m) ? i : -1).filter(i=>i>=0);
+const rows = DATA.filter(d => selectedBranches.has(d.branch)).map(d => ({
+branch: d.branch,
+lama: d.lama.map((x,i) => monthIdxs.includes(i) ? x : 0),
+baru: d.baru.map((x,i) => monthIdxs.includes(i) ? x : 0)
+}));
+return { rows, monthIdxs };
+}
+
+function fmt(n) { return n.toLocaleString('id-ID'); }
+let charts = {};
+
+function render() {
+const { rows, monthIdxs } = getFiltered();
+let lama=0, baru=0;
+rows.forEach(r => { r.lama.forEach(x=>lama+=x); r.baru.forEach(x=>baru+=x); });
+const total = lama+baru;
+document.getElementById('kpiTotal').textContent = fmt(total);
+document.getElementById('kpiLama').textContent = fmt(lama);
+document.getElementById('kpiBaru').textContent = fmt(baru);
+document.getElementById('kpiPct').textContent = total ? ((baru/total)*100).toFixed(1)+'%' : '0%';
+document.getElementById('kpiTotalSub').textContent = rows.length+' cabang • '+monthIdxs.length+' bulan';
+document.getElementById('kpiLamaSub').textContent = total ? ((lama/total)*100).toFixed(1)+'% dari total' : '';
+document.getElementById('kpiBaruSub').textContent = total ? ((baru/total)*100).toFixed(1)+'% dari total' : '';
+
+const monthlyTotals = MONTHS.map((_,i) => rows.reduce((s,r)=>s+r.lama[i]+r.baru[i],0));
+upsert('chartMonthly','bar', {
+labels: MONTHS,
+datasets: [{ label:'Total Pasien', data: monthlyTotals, backgroundColor:'#53BA2D', borderRadius:6 }]
+});
+
+const branchTotals = rows.map(r => r.lama.reduce((a,b)=>a+b,0) + r.baru.reduce((a,b)=>a+b,0));
+upsert('chartBranch','bar', {
+labels: rows.map(r=>r.branch),
+datasets: [{ label:'Total', data: branchTotals, backgroundColor: rows.map((_,i)=>COLORS[i%COLORS.length]), borderRadius:6 }]
+}, { indexAxis: 'y' });
+
+const lamaByMonth = MONTHS.map((_,i)=>rows.reduce((s,r)=>s+r.lama[i],0));
+const baruByMonth = MONTHS.map((_,i)=>rows.reduce((s,r)=>s+r.baru[i],0));
+upsert('chartTrend','bar', {
+labels: MONTHS,
+datasets: [
+{ label:'Lama', data: lamaByMonth, backgroundColor:'#042AE0', borderRadius:4 },
+{ label:'Baru', data: baruByMonth, backgroundColor:'#C0C906', borderRadius:4 }
+]
+}, { scales: { x:{stacked:true}, y:{stacked:true} } });
+
+upsert('chartShare','doughnut', {
+labels: rows.map(r=>r.branch),
+datasets: [{ data: branchTotals, backgroundColor: rows.map((_,i)=>COLORS[i%COLORS.length]) }]
+}, { cutout: '60%' });
+
+renderTable(rows, monthIdxs);
+}
+
+function upsert(id, type, data, extraOpts={}) {
+if (charts[id]) charts[id].destroy();
+const ctx = document.getElementById(id).getContext('2d');
+charts[id] = new Chart(ctx, {
+type, data,
+options: Object.assign({
+responsive:true, maintainAspectRatio:false,
+plugins:{ legend:{ position:'bottom', labels:{ font:{size:11} } } }
+}, extraOpts)
+});
+}
+
+function renderTable(rows, monthIdxs) {
+const thead = document.querySelector('#detailTable thead');
+const tbody = document.querySelector('#detailTable tbody');
+if (rows.length === 0 || monthIdxs.length === 0) {
+thead.innerHTML = '';
+tbody.innerHTML = '<tr><td colspan="99" class="empty-state">Pilih minimal 1 cabang dan 1 bulan untuk menampilkan data</td></tr>';
+return;
+}
+const monthsShown = monthIdxs.map(i => MONTHS[i]);
+let h = '<tr><th>Cabang</th>';
+monthsShown.forEach(m=> h+= '<th class="num">'+m+'</th>');
+h += '<th class="num">Total</th></tr>';
+thead.innerHTML = h;
+let body = '';
+let totals = monthIdxs.map(()=>0); let grand=0;
+rows.forEach(r => {
+let rowTot = 0;
+body += '<tr><td><strong>'+r.branch+'</strong></td>';
+monthIdxs.forEach((mi, idx)=>{ const val=r.lama[mi]+r.baru[mi]; rowTot+=val; totals[idx]+=val; body+='<td class="num">'+fmt(val)+'</td>'; });
+body += '<td class="num"><strong>'+fmt(rowTot)+'</strong></td></tr>';
+grand += rowTot;
+});
+body += '<tr class="total-row"><td>TOTAL</td>';
+totals.forEach(t=> body+='<td class="num">'+fmt(t)+'</td>');
+body += '<td class="num">'+fmt(grand)+'</td></tr>';
+tbody.innerHTML = body;
+}
+
+buildChips();
+render();
+</script>
+</body>
+</html>
